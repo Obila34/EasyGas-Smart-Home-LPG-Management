@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Integration Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .sensor-data {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .data-card {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .data-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 EasyGas ESP32 Integration Test</h1>
+        
+        <div class="test-section warning">
+            <h3>⚠️ Configuration Required</h3>
+            <p>Before testing, update the configuration below with your actual Supabase credentials:</p>
+            <div>
+                <label>Project ID: </label>
+                <input type="text" id="projectId" placeholder="your-project-id" style="width: 300px;">
+            </div>
+            <br>
+            <div>
+                <label>Anon Key: </label>
+                <input type="text" id="anonKey" placeholder="your-anon-key" style="width: 400px;">
+            </div>
+            <br>
+            <button onclick="updateConfig()">Update Configuration</button>
+        </div>
+
+        <div class="test-section" id="connectionTest">
+            <h3>🔌 Backend Connection Test</h3>
+            <p>Test if your EasyGas backend is accessible and responding correctly.</p>
+            <button onclick="testConnection()">Test Connection</button>
+            <div id="connectionResult"></div>
+        </div>
+
+        <div class="test-section" id="apiTest">
+            <h3>📡 API Endpoints Test</h3>
+            <p>Test the specific endpoints that your ESP32 will use.</p>
+            <button onclick="testGasLevelAPI()">Test Gas Level API</button>
+            <button onclick="testLeakDetectionAPI()">Test Leak Detection API</button>
+            <div id="apiResult"></div>
+        </div>
+
+        <div class="test-section" id="simulatorSection">
+            <h3>🎮 ESP32 Data Simulator</h3>
+            <p>Simulate ESP32 sensor data to test your web application:</p>
+            
+            <div class="sensor-data">
+                <div class="data-card">
+                    <h4>Gas Level</h4>
+                    <div class="data-value" id="gasLevelDisplay">0%</div>
+                    <input type="range" id="gasLevelSlider" min="0" max="100" value="68" 
+                           onchange="updateGasLevel(this.value)">
+                </div>
+                
+                <div class="data-card">
+                    <h4>Leak Detection</h4>
+                    <div class="data-value" id="leakStatusDisplay">NO LEAK</div>
+                    <button id="leakToggle" onclick="toggleLeak()">Simulate Leak</button>
+                </div>
+            </div>
+            
+            <button onclick="startSimulation()">Start Auto Simulation</button>
+            <button onclick="stopSimulation()">Stop Simulation</button>
+            <div id="simulatorResult"></div>
+        </div>
+
+        <div class="test-section" id="codeGenerator">
+            <h3>📋 ESP32 Configuration Code</h3>
+            <p>Copy this configuration into your ESP32 firmware:</p>
+            <button onclick="generateConfig()">Generate ESP32 Config</button>
+            <pre id="configCode"></pre>
+        </div>
+
+        <div class="test-section" id="instructions">
+            <h3>📖 Next Steps</h3>
+            <ol>
+                <li>Complete the connection tests above</li>
+                <li>Copy the generated ESP32 configuration</li>
+                <li>Update your ESP32 firmware with the configuration</li>
+                <li>Wire your sensors according to the setup guide</li>
+                <li>Upload the firmware to your ESP32</li>
+                <li>Monitor the serial output and your EasyGas web app</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        let projectId = '';
+        let anonKey = '';
+        let simulationInterval = null;
+        let isLeakDetected = false;
+
+        function updateConfig() {
+            projectId = document.getElementById('projectId').value;
+            anonKey = document.getElementById('anonKey').value;
+            
+            if (!projectId || !anonKey) {
+                alert('Please enter both Project ID and Anon Key');
+                return;
+            }
+            
+            document.querySelector('#connectionTest').className = 'test-section';
+            alert('Configuration updated! You can now test the connection.');
+        }
+
+        async function testConnection() {
+            if (!projectId || !anonKey) {
+                alert('Please update configuration first');
+                return;
+            }
+
+            const resultDiv = document.getElementById('connectionResult');
+            resultDiv.innerHTML = '<p>Testing connection...</p>';
+
+            try {
+                const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-aa295c22/health`, {
+                    headers: {
+                        'Authorization': `Bearer ${anonKey}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML = `<div class="success">
+                        <p>✅ Connection successful!</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>`;
+                    document.querySelector('#connectionTest').className = 'test-section success';
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">
+                    <p>❌ Connection failed: ${error.message}</p>
+                    <p>Check your Project ID and Anon Key</p>
+                </div>`;
+                document.querySelector('#connectionTest').className = 'test-section error';
+            }
+        }
+
+        async function testGasLevelAPI() {
+            const resultDiv = document.getElementById('apiResult');
+            
+            try {
+                // Test GET
+                const getResponse = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-aa295c22/gas-level`, {
+                    headers: { 'Authorization': `Bearer ${anonKey}` }
+                });
+                
+                // Test POST
+                const postResponse = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-aa295c22/gas-level`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${anonKey}`
+                    },
+                    body: JSON.stringify({ level: 75.5 })
+                });
+
+                if (getResponse.ok && postResponse.ok) {
+                    const getData = await getResponse.json();
+                    const postData = await postResponse.json();
+                    
+                    resultDiv.innerHTML = `<div class="success">
+                        <p>✅ Gas Level API working!</p>
+                        <p><strong>GET Response:</strong></p>
+                        <pre>${JSON.stringify(getData, null, 2)}</pre>
+                        <p><strong>POST Response:</strong></p>
+                        <pre>${JSON.stringify(postData, null, 2)}</pre>
+                    </div>`;
+                } else {
+                    throw new Error('API test failed');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">
+                    <p>❌ Gas Level API test failed: ${error.message}</p>
+                </div>`;
+            }
+        }
+
+        async function testLeakDetectionAPI() {
+            const resultDiv = document.getElementById('apiResult');
+            
+            try {
+                const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-aa295c22/leak-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${anonKey}`
+                    },
+                    body: JSON.stringify({ leakDetected: true })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    resultDiv.innerHTML += `<div class="success">
+                        <p>✅ Leak Detection API working!</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </div>`;
+                } else {
+                    throw new Error('Leak detection API test failed');
+                }
+            } catch (error) {
+                resultDiv.innerHTML += `<div class="error">
+                    <p>❌ Leak Detection API test failed: ${error.message}</p>
+                </div>`;
+            }
+        }
+
+        function updateGasLevel(value) {
+            document.getElementById('gasLevelDisplay').textContent = `${value}%`;
+            
+            // Send to API
+            sendGasLevel(parseFloat(value));
+        }
+
+        async function sendGasLevel(level) {
+            try {
+                await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-aa295c22/gas-level`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${anonKey}`
+                    },
+                    body: JSON.stringify({ level })
+                });
+            } catch (error) {
+                console.error('Failed to send gas level:', error);
+            }
+        }
+
+        async function toggleLeak() {
+            isLeakDetected = !isLeakDetected;
+            const display = document.getElementById('leakStatusDisplay');
+            const button = document.getElementById('leakToggle');
+            
+            if (isLeakDetected) {
+                display.textContent = 'LEAK DETECTED!';
+                display.style.color = 'red';
+                button.textContent = 'Clear Leak';
+                button.style.backgroundColor = 'red';
+            } else {
+                display.textContent = 'NO LEAK';
+                display.style.color = '#007bff';
+                button.textContent = 'Simulate Leak';
+                button.style.backgroundColor = '#007bff';
+            }
+            
+            // Send to API
+            try {
+                await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-aa295c22/leak-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${anonKey}`
+                    },
+                    body: JSON.stringify({ leakDetected: isLeakDetected })
+                });
+            } catch (error) {
+                console.error('Failed to send leak status:', error);
+            }
+        }
+
+        function startSimulation() {
+            if (simulationInterval) return;
+            
+            document.getElementById('simulatorResult').innerHTML = '<p class="success">🎮 Simulation running... Check your EasyGas web app!</p>';
+            
+            simulationInterval = setInterval(() => {
+                // Simulate realistic gas level decrease
+                const currentLevel = parseFloat(document.getElementById('gasLevelSlider').value);
+                const newLevel = Math.max(0, currentLevel - 0.1);
+                
+                document.getElementById('gasLevelSlider').value = newLevel;
+                updateGasLevel(newLevel);
+                
+                // Occasionally simulate a leak (5% chance)
+                if (Math.random() < 0.05 && !isLeakDetected) {
+                    toggleLeak();
+                    setTimeout(() => {
+                        if (isLeakDetected) toggleLeak();
+                    }, 5000); // Clear leak after 5 seconds
+                }
+            }, 2000);
+        }
+
+        function stopSimulation() {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+                simulationInterval = null;
+                document.getElementById('simulatorResult').innerHTML = '<p>Simulation stopped.</p>';
+            }
+        }
+
+        function generateConfig() {
+            if (!projectId || !anonKey) {
+                alert('Please update configuration first');
+                return;
+            }
+
+            const config = `// WiFi credentials - Replace with your actual credentials
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+
+// Supabase configuration - Your actual values
+const char* projectId = "${projectId}";
+const char* anonKey = "${anonKey}";`;
+
+            document.getElementById('configCode').textContent = config;
+        }
+
+        // Initialize display
+        document.getElementById('gasLevelDisplay').textContent = '68%';
+    </script>
+</body>
+</html>
