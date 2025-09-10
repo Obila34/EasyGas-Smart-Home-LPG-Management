@@ -1,0 +1,39 @@
+MIT License
+
+Copyright (c) 2024 EasyGas Smart Home LPG Management
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+## Additional Safety Disclaimer
+
+This software is designed to assist in monitoring LPG (Liquefied Petroleum Gas) 
+systems but should never replace proper safety procedures, professional 
+inspections, or adherence to local safety regulations.
+
+IMPORTANT SAFETY NOTICE:
+- Always follow manufacturer guidelines for LPG equipment
+- Regular professional inspections are required regardless of this system
+- This system is not certified for safety-critical applications
+- Users assume full responsibility for proper installation and usage
+- Emergency response procedures should not rely solely on this system
+- Comply with all local building codes and safety regulations
+
+The developers and contributors of this project disclaim any liability for 
+property damage, personal injury, or loss of life resulting from the use or 
+misuse of this software and associated hardware.
